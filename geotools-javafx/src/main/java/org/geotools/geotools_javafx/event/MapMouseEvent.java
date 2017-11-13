@@ -16,6 +16,7 @@
  */
 package org.geotools.geotools_javafx.event;
 
+import java.awt.Point;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Rectangle2D;
 
@@ -106,17 +107,6 @@ public final class MapMouseEvent extends MouseEvent {
     public int getWheelAmount() {
         return wheelAmount;
     }
-
-    /**
-     * Gets the position, in map (world) coordinates of this mouse event
-     * 
-     * @return a new DirectPosition2D object for the world coordinates
-     * 
-     * @deprecated Please use {@link #getWorldPos} instead
-     */
-    public DirectPosition2D getMapPosition() {
-        return getWorldPos();
-    }
     
     /**
      * Gets the mouse position in world coordinates.
@@ -127,6 +117,14 @@ public final class MapMouseEvent extends MouseEvent {
         return new DirectPosition2D(
                 worldCoords.getCoordinateReferenceSystem(),
                 worldCoords.x, worldCoords.y);
+    }
+    
+    /**
+     * package javafx MouseEvent Point to java awt Point
+     * @return
+     */
+    public Point getPoint(){
+    	return new Point((int)this.getX() , (int)this.getY());
     }
     
     /**

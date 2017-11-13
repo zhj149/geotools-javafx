@@ -4,11 +4,17 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
+import java.awt.geom.NoninvertibleTransformException;
+import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Logger;
 
+import org.geotools.geometry.DirectPosition2D;
+import org.geotools.geometry.jts.JTS;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.geotools_javafx.event.DefaultMapMouseEventDispatcher;
 import org.geotools.geotools_javafx.event.MapMouseEventDispatcher;
@@ -19,18 +25,22 @@ import org.geotools.geotools_javafx.event.MapPaneListener;
 import org.geotools.geotools_javafx.tools.CursorTool;
 import org.geotools.map.Layer;
 import org.geotools.map.MapContent;
+import org.geotools.map.MapViewport;
 import org.geotools.map.event.MapBoundsEvent;
 import org.geotools.map.event.MapBoundsListener;
 import org.geotools.map.event.MapLayerListEvent;
 import org.geotools.map.event.MapLayerListListener;
+import org.geotools.referencing.CRS;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.geotools.renderer.GTRenderer;
+import org.geotools.renderer.label.LabelCacheImpl;
 import org.geotools.renderer.lite.LabelCache;
 import org.geotools.renderer.lite.StreamingRenderer;
 import org.geotools.util.logging.Logging;
 import org.jfree.fx.FXGraphics2D;
 import org.opengis.geometry.Envelope;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.opengis.referencing.operation.MathTransform;
 
 import javafx.scene.canvas.Canvas;
 import javafx.scene.input.MouseEvent;
@@ -80,7 +90,12 @@ public class JFXMapPane extends Canvas implements MapPane, MapLayerListListener,
 	/**
 	 * 注册的地图事件
 	 */
-	protected List<MapPaneListener> listeners = new LinkedList<>();
+	protected List<MapPaneListener> paneListeners = new LinkedList<>();
+
+	/**
+	 * 绘制事件
+	 */
+	protected List<MapPaintListener> paintListeners = new LinkedList<>();
 
 	/**
 	 * 缓存(应该是标签)
@@ -93,14 +108,39 @@ public class JFXMapPane extends Canvas implements MapPane, MapLayerListListener,
 	private volatile boolean clearLabelCache = true;
 
 	/**
+	 * 当前的内存图片
+	 */
+	private BufferedImage baseImage;
+
+	/**
+	 * 内存2D画布对象
+	 */
+	private Graphics2D memory2D;
+
+	/**
 	 * 鼠标操作事件包装对象
 	 */
 	protected MapMouseEventDispatcher mapMouseEventDispatcher;
+	
+	/**
+	 * 当前的鼠标操作工具
+	 */
+	private CursorTool cursorTool;
 
 	/**
 	 * 二维画布封装
 	 */
 	protected FXGraphics2D g2d;
+
+	/**
+	 * 缓存起来的世界到屏幕转换的转换对象
+	 */
+	private AffineTransform worldToScreen;
+
+	/**
+	 * 缓存起来的屏幕到世界的转换对象
+	 */
+	private AffineTransform screenToWorld;
 
 	/**
 	 * javafx实现的geotools画布对象
@@ -111,7 +151,7 @@ public class JFXMapPane extends Canvas implements MapPane, MapLayerListListener,
 
 		// 实现画布
 		g2d = new FXGraphics2D(this.getGraphicsContext2D());
-		this.renderer = new StreamingRenderer();
+		doSetRenderer(new StreamingRenderer());
 		this.setMapContent(content);
 
 		mapMouseEventDispatcher = new DefaultMapMouseEventDispatcher(this);
@@ -132,7 +172,7 @@ public class JFXMapPane extends Canvas implements MapPane, MapLayerListListener,
 	 * is defined is to avoid having try-catch blocks all through other methods.
 	 */
 	private void setFullExtent() {
-		if (mapContent != null && mapContent.layers().size() > 0) {
+		if (mapContent != null) {
 			try {
 
 				fullExtent = mapContent.getMaxBounds();
@@ -144,7 +184,6 @@ public class JFXMapPane extends Canvas implements MapPane, MapLayerListListener,
 				if (fullExtent == null) {
 					// set arbitrary bounds centred on 0,0
 					fullExtent = worldEnvelope();
-
 				}
 
 			} catch (Exception ex) {
@@ -173,69 +212,76 @@ public class JFXMapPane extends Canvas implements MapPane, MapLayerListListener,
 	 *            requested display area
 	 */
 	protected void doSetDisplayArea(Envelope envelope) {
-		if (mapContent != null) {
-			CoordinateReferenceSystem crs = envelope.getCoordinateReferenceSystem();
-			if (crs == null) {
-				// assume that it is the current CRS
-				crs = mapContent.getCoordinateReferenceSystem();
-			}
 
-			ReferencedEnvelope refEnv = new ReferencedEnvelope(envelope.getMinimum(0), envelope.getMaximum(0),
-					envelope.getMinimum(1), envelope.getMaximum(1), crs);
+		Rectangle curPaintArea = this.getVisibleRectangle();
 
-			mapContent.getViewport().setBounds(refEnv);
+		assert (mapContent != null && curPaintArea != null && !curPaintArea.isEmpty());
 
+		if (equalsFullExtent(envelope)) {
+			setTransforms(fullExtent, curPaintArea);
 		} else {
-			pendingDisplayArea = new ReferencedEnvelope(envelope);
+			setTransforms(envelope, curPaintArea);
 		}
+		ReferencedEnvelope adjustedEnvelope = getDisplayArea();
+		mapContent.getViewport().setBounds(adjustedEnvelope);
 
 		// Publish the resulting display area with the event
 		publishEvent(new MapPaneEvent(this, MapPaneEvent.Type.DISPLAY_AREA_CHANGED, getDisplayArea()));
 	}
 
-	// end
-
-	// begin MapPane implements
-
 	/**
-	 * 当前地图的上下文
+	 * Check if the envelope corresponds to full extent. It will probably not
+	 * equal the full extent envelope because of slack space in the display
+	 * area, so we check that at least one pair of opposite edges are equal to
+	 * the full extent envelope, allowing for slack space on the other two
+	 * sides.
+	 * <p>
+	 * Note: this method returns {@code false} if the full extent envelope is
+	 * wholly within the requested envelope (e.g. user has zoomed out from full
+	 * extent), only touches one edge, or touches two adjacent edges. In all
+	 * these cases we assume that the user wants to maintain the slack space in
+	 * the display.
+	 * <p>
+	 * This method is part of the work-around that the map pane needs because of
+	 * the differences in how raster and vector layers are treated by the
+	 * renderer classes.
+	 *
+	 * @param envelope
+	 *            a pending display envelope to compare to the full extent
+	 *            envelope
+	 *
+	 * @return true if the envelope is coincident with the full extent evenlope
+	 *         on at least two edges; false otherwise
+	 *
+	 * @todo My logic here seems overly complex - I'm sure there must be a
+	 *       simpler way for the map pane to handle this.
 	 */
-	public MapContent getMapContent() {
-		return mapContent;
-	}
-
-	/**
-	 * 重新设置地图上下文
-	 */
-	public void setMapContent(MapContent content) {
-
-		if (this.mapContent != content) {
-
-			if (this.mapContent != null) {
-				this.mapContent.removeMapLayerListListener(this);
-			}
-
-			this.mapContent = content;
-
-			if (content != null) {
-				this.mapContent.addMapLayerListListener(this);
-				this.mapContent.addMapBoundsListener(this);
-
-				// set all layers as selected by default for the info tool
-				for (Layer layer : content.layers()) {
-					layer.setSelected(true);
-				}
-
-				setFullExtent();
-			}
-
-			if (renderer != null) {
-				renderer.setMapContent(this.mapContent);
-			}
-
-			MapPaneEvent ev = new MapPaneEvent(this, MapPaneEvent.Type.NEW_CONTEXT);
-			publishEvent(ev);
+	private boolean equalsFullExtent(final Envelope envelope) {
+		if (fullExtent == null || envelope == null) {
+			return false;
 		}
+
+		final double TOL = 1.0e-6d * (fullExtent.getWidth() + fullExtent.getHeight());
+
+		boolean touch = false;
+		if (Math.abs(envelope.getMinimum(0) - fullExtent.getMinimum(0)) < TOL) {
+			touch = true;
+		}
+		if (Math.abs(envelope.getMaximum(0) - fullExtent.getMaximum(0)) < TOL) {
+			if (touch) {
+				return true;
+			}
+		}
+		if (Math.abs(envelope.getMinimum(1) - fullExtent.getMinimum(1)) < TOL) {
+			touch = true;
+		}
+		if (Math.abs(envelope.getMaximum(1) - fullExtent.getMaximum(1)) < TOL) {
+			if (touch) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
@@ -244,7 +290,7 @@ public class JFXMapPane extends Canvas implements MapPane, MapLayerListListener,
 	 * @param ev
 	 */
 	private void publishEvent(MapPaneEvent ev) {
-		for (MapPaneListener listener : listeners) {
+		for (MapPaneListener listener : paneListeners) {
 			switch (ev.getType()) {
 			case NEW_CONTEXT:
 				listener.onNewContext(ev);
@@ -278,6 +324,167 @@ public class JFXMapPane extends Canvas implements MapPane, MapLayerListListener,
 	}
 
 	/**
+	 * 设置绘制对象
+	 * 
+	 * @param newRenderer
+	 */
+	private void doSetRenderer(GTRenderer newRenderer) {
+		if (newRenderer != null) {
+			Map<Object, Object> hints = newRenderer.getRendererHints();
+			if (hints == null) {
+				hints = new HashMap<Object, Object>();
+			}
+
+			if (newRenderer instanceof StreamingRenderer) {
+				if (hints.containsKey(StreamingRenderer.LABEL_CACHE_KEY)) {
+					labelCache = (LabelCache) hints.get(StreamingRenderer.LABEL_CACHE_KEY);
+				} else {
+					labelCache = new LabelCacheImpl();
+					hints.put(StreamingRenderer.LABEL_CACHE_KEY, labelCache);
+				}
+			}
+
+			newRenderer.setRendererHints(hints);
+
+			if (mapContent != null) {
+				newRenderer.setMapContent(mapContent);
+			}
+		}
+
+		renderer = newRenderer;
+	}
+
+	/**
+	 * 当获取worldtoscreen失败的时候，自己重新计算的worldtoscreen
+	 * 
+	 * @param envelope
+	 * @param paintArea
+	 */
+	private void setTransforms(final Envelope envelope, final Rectangle paintArea) {
+
+		ReferencedEnvelope refEnv = null;
+		if (envelope != null) {
+			refEnv = new ReferencedEnvelope(envelope);
+		} else {
+			refEnv = worldEnvelope();
+		}
+
+		double xscale = paintArea.getWidth() / refEnv.getWidth();
+		double yscale = paintArea.getHeight() / refEnv.getHeight();
+
+		double scale = Math.min(xscale, yscale);
+
+		double xoff = refEnv.getMedian(0) * scale - paintArea.getCenterX();
+		double yoff = refEnv.getMedian(1) * scale + paintArea.getCenterY();
+
+		worldToScreen = new AffineTransform(scale, 0, 0, -scale, -xoff, yoff);
+		try {
+			screenToWorld = worldToScreen.createInverse();
+		} catch (NoninvertibleTransformException e) {
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * 重新设置坐标系
+	 * 
+	 * @param crs
+	 */
+	public void setCrs(CoordinateReferenceSystem crs) {
+		try {
+			// System.out.println(content.layers().size());
+			ReferencedEnvelope rEnv = getDisplayArea();
+			// System.out.println(rEnv);
+
+			CoordinateReferenceSystem sourceCRS = rEnv.getCoordinateReferenceSystem();
+			CoordinateReferenceSystem targetCRS = crs;
+
+			MathTransform transform = CRS.findMathTransform(sourceCRS, targetCRS);
+			com.vividsolutions.jts.geom.Envelope newJtsEnv = JTS.transform(rEnv, transform);
+
+			ReferencedEnvelope newEnvelope = new ReferencedEnvelope(newJtsEnv, targetCRS);
+			mapContent.getViewport().setBounds(newEnvelope);
+			fullExtent = null;
+			doSetDisplayArea(newEnvelope);
+
+			// ReferencedEnvelope displayArea =
+			getDisplayArea();
+			// System.out.println(displayArea);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	// end
+
+	// begin MapPane implements
+
+	/**
+	 * 当前地图的上下文
+	 */
+	public MapContent getMapContent() {
+		return mapContent;
+	}
+
+	/**
+	 * 重新设置地图上下文
+	 */
+	public void setMapContent(MapContent content) {
+
+		if (this.mapContent != content) {
+
+			if (this.mapContent != null) {
+				this.mapContent.removeMapLayerListListener(this);
+			}
+
+			this.mapContent = content;
+
+			if (content != null) {
+				MapViewport viewport = mapContent.getViewport();
+				viewport.setMatchingAspectRatio(true);
+				Rectangle rect = this.getVisibleRectangle();
+				if (!rect.isEmpty()) {
+					viewport.setScreenArea(rect);
+				}
+				this.mapContent.addMapLayerListListener(this);
+				this.mapContent.addMapBoundsListener(this);
+
+				// set all layers as selected by default for the info tool
+				for (Layer layer : content.layers()) {
+					layer.setSelected(true);
+				}
+
+				setFullExtent();
+				doSetDisplayArea(mapContent.getViewport().getBounds());
+			}
+
+			if (renderer != null) {
+				renderer.setMapContent(this.mapContent);
+			}
+
+			MapPaneEvent ev = new MapPaneEvent(this, MapPaneEvent.Type.NEW_CONTEXT);
+			publishEvent(ev);
+		}
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public GTRenderer getRenderer() {
+		if (renderer == null) {
+			doSetRenderer(new StreamingRenderer());
+		}
+		return renderer;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	public void setRenderer(GTRenderer renderer) {
+		doSetRenderer(renderer);
+	}
+
+	/**
 	 * {@inheritDoc}
 	 */
 	@Override
@@ -307,13 +514,34 @@ public class JFXMapPane extends Canvas implements MapPane, MapLayerListListener,
 	 */
 	@Override
 	public ReferencedEnvelope getDisplayArea() {
-		if (mapContent != null) {
-			return mapContent.getViewport().getBounds();
-		} else if (pendingDisplayArea != null) {
-			return new ReferencedEnvelope(pendingDisplayArea);
-		} else {
-			return new ReferencedEnvelope();
+		ReferencedEnvelope aoi = null;
+		Rectangle curPaintArea = this.getVisibleRectangle();
+
+		if (curPaintArea != null && screenToWorld != null) {
+			Point2D p0 = new Point2D.Double(curPaintArea.getMinX(), curPaintArea.getMinY());
+			Point2D p1 = new Point2D.Double(curPaintArea.getMaxX(), curPaintArea.getMaxY());
+			screenToWorld.transform(p0, p0);
+			screenToWorld.transform(p1, p1);
+
+			aoi = new ReferencedEnvelope(Math.min(p0.getX(), p1.getX()), Math.max(p0.getX(), p1.getX()),
+					Math.min(p0.getY(), p1.getY()), Math.max(p0.getY(), p1.getY()),
+					mapContent.getCoordinateReferenceSystem());
 		}
+
+		return aoi;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 * 
+	 * @return
+	 */
+	public DirectPosition2D getMapCenter() {
+		AffineTransform tr = this.getScreenToWorldTransform();
+		DirectPosition2D pos = new DirectPosition2D(this.getWidth() / 2, this.getHeight() / 2);
+		tr.transform(pos, pos);
+		pos.setCoordinateReferenceSystem(this.getMapContent().getCoordinateReferenceSystem());
+		return pos;
 	}
 
 	/**
@@ -328,7 +556,7 @@ public class JFXMapPane extends Canvas implements MapPane, MapLayerListListener,
 		doSetDisplayArea(envelope);
 		if (mapContent != null) {
 			clearLabelCache = true;
-			this.repaint();
+			this.repaint(false);
 		}
 	}
 
@@ -347,8 +575,16 @@ public class JFXMapPane extends Canvas implements MapPane, MapLayerListListener,
 	 */
 	@Override
 	public AffineTransform getScreenToWorldTransform() {
+
 		if (mapContent != null) {
-			return mapContent.getViewport().getScreenToWorld();
+
+			if (screenToWorld == null) {
+				this.setTransforms(this.getDisplayArea(), this.getVisibleRectangle());
+				return new AffineTransform(screenToWorld);
+			} else {
+				return new AffineTransform(screenToWorld);
+			}
+
 		} else {
 			return null;
 		}
@@ -359,8 +595,16 @@ public class JFXMapPane extends Canvas implements MapPane, MapLayerListListener,
 	 */
 	@Override
 	public AffineTransform getWorldToScreenTransform() {
+
 		if (mapContent != null) {
-			return mapContent.getViewport().getWorldToScreen();
+
+			if (worldToScreen == null) {
+				this.setTransforms(this.getDisplayArea(), this.getVisibleRectangle());
+				return new AffineTransform(worldToScreen);
+			} else {
+				return new AffineTransform(worldToScreen);
+			}
+
 		} else {
 			return null;
 		}
@@ -371,7 +615,7 @@ public class JFXMapPane extends Canvas implements MapPane, MapLayerListListener,
 	 */
 	@Override
 	public void addMapPaneListener(MapPaneListener listener) {
-		this.listeners.add(listener);
+		this.paneListeners.add(listener);
 	}
 
 	/**
@@ -379,7 +623,7 @@ public class JFXMapPane extends Canvas implements MapPane, MapLayerListListener,
 	 */
 	@Override
 	public void removeMapPaneListener(MapPaneListener listener) {
-		this.listeners.remove(listener);
+		this.paneListeners.remove(listener);
 	}
 
 	/**
@@ -400,53 +644,118 @@ public class JFXMapPane extends Canvas implements MapPane, MapLayerListListener,
 			this.mapMouseEventDispatcher.removeMouseListener(listener);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
 	public CursorTool getCursorTool() {
-		// TODO Auto-generated method stub
-		return null;
+		return this.cursorTool;
 	}
-
-	public void setCursorTool(CursorTool tool) {
-		// TODO Auto-generated method stub
-
-	}
-
-	public void moveImage(int dx, int dy) {
-		// TODO Auto-generated method stub
-
-	}
-	
-	private BufferedImage baseImage;
 
 	/**
-	 * 重绘
+	 * {@inheritDoc}
 	 */
-	public void repaint() {
-		
-		Rectangle r = new Rectangle(0, 0, (int) this.getWidth(), (int) this.getHeight());
-		if (g2d == null) {
-			g2d = new FXGraphics2D(this.getGraphicsContext2D());
-			clearLabelCache = true;
-
-		} else {
-			g2d.setBackground(Color.WHITE);
-			g2d.clearRect(0, 0, (int) this.getWidth(), (int) this.getHeight());
+	@Override 
+	public void setCursorTool(CursorTool tool) {
+		if(this.cursorTool != null){
+			this.cursorTool.unUsed();
+			this.cursorTool.setMapPane(null);
 		}
 		
-		baseImage = new BufferedImage(r.width + 1, r.height + 1, BufferedImage.TYPE_INT_ARGB);
-		Graphics2D memory2D = baseImage.createGraphics();
+		this.cursorTool = tool;
 		
+		if (this.cursorTool != null){
+			this.cursorTool.setMapPane(this);
+		}
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public void moveImage(int dx, int dy) {
+
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public void repaint(boolean resize) {
+
+		Rectangle r = getVisibleRectangle();
+		if (baseImage == null || resize) {
+			baseImage = new BufferedImage(r.width, r.height, BufferedImage.TYPE_INT_ARGB);
+			clearLabelCache = true;
+			memory2D = baseImage.createGraphics();
+		} else {
+			memory2D.setBackground(Color.WHITE);
+			memory2D.clearRect(0, 0, r.width, r.height);
+		}
+
 		this.renderer.paint(memory2D, r, this.mapContent.getMaxBounds(), getWorldToScreenTransform());
+
+		if (this.paintListeners != null && !this.paintListeners.isEmpty()) {
+			for (MapPaintListener listener : this.paintListeners) {
+				listener.beforePaint(memory2D);
+			}
+		}
+
 		g2d.drawImage(baseImage, 0, 0, null);
+
+		if (this.paintListeners != null && !this.paintListeners.isEmpty()) {
+			for (MapPaintListener listener : this.paintListeners) {
+				listener.afterPaint(g2d);
+			}
+		}
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
+	public void refresh() {
+
+		if (memory2D != null) {
+			if (this.paintListeners != null && !this.paintListeners.isEmpty()) {
+				for (MapPaintListener listener : this.paintListeners) {
+					listener.beforePaint(g2d);
+				}
+			}
+		}
+
+		if (this.baseImage != null) {
+			g2d.drawImage(baseImage, 0, 0, null);
+		}
+
+		if (this.paintListeners != null && !this.paintListeners.isEmpty()) {
+			for (MapPaintListener listener : this.paintListeners) {
+				listener.afterPaint(g2d);
+			}
+		}
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public Rectangle getVisibleRectangle() {
+		return new Rectangle(0, 0, (int) this.getWidth(), (int) this.getHeight());
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
 	public void addPaintListener(MapPaintListener listener) {
-		// TODO Auto-generated method stub
-
+		this.paintListeners.add(listener);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
 	public void removePaintListener(MapPaintListener listener) {
-		// TODO Auto-generated method stub
-
+		this.paintListeners.remove(listener);
 	}
 
 	// end

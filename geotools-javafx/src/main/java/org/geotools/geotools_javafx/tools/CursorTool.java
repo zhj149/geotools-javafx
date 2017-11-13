@@ -48,6 +48,15 @@ public abstract class CursorTool extends MapMouseAdapter {
         }
 
         this.mapPane = pane;
+        this.mapPane.addMouseListener(this);
+    }
+    
+    /**
+     * 
+     *  when change to another CursorTool's call
+     */
+    public void unUsed(){
+    	mapPane.removeMouseListener(this);
     }
 
     /**
@@ -68,15 +77,5 @@ public abstract class CursorTool extends MapMouseAdapter {
     public Cursor getCursor() {
         return Cursor.getDefaultCursor();
     }
-
-    /**
-     * Query if the tool is one that draws a box on the map display
-     * when the mouse is being dragged (eg. to indicate a zoom area).
-     *
-     * @return true if this tool supports drawing a drag-box on the
-     * map; false otherwise
-     */
-    public boolean drawDragBox() {
-        return false;
-    }
+    
 }

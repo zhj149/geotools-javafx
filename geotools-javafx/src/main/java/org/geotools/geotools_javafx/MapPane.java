@@ -16,8 +16,10 @@
  */
 package org.geotools.geotools_javafx;
 
+import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
 
+import org.geotools.geometry.DirectPosition2D;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.geotools_javafx.event.MapMouseEventDispatcher;
 import org.geotools.geotools_javafx.event.MapMouseListener;
@@ -25,171 +27,181 @@ import org.geotools.geotools_javafx.event.MapPaintListener;
 import org.geotools.geotools_javafx.event.MapPaneListener;
 import org.geotools.geotools_javafx.tools.CursorTool;
 import org.geotools.map.MapContent;
+import org.geotools.renderer.GTRenderer;
 import org.opengis.geometry.Envelope;
 
 /**
- * Defines the core map pane methods.
- *
- * @author Michael Bedward
- * @since 8.0
- *
- * @source $URL$
- * @version $Id$
+ * 地图画布对外公布的操作接口
+ * 
+ * @author sam
+ * @version 1.0
  */
 public interface MapPane {
 
-    /**
-     * Gets the {@code MapConent} instance containing the layers
-     * being displayed by this map pane.
-     *
-     * @return the map content
-     */
-    public MapContent getMapContent();
+	/**
+	 * 获取当前的地图上下文对象
+	 * 
+	 * @return
+	 */
+	public MapContent getMapContent();
 
-    /**
-     * Sets the {@code MapContent} instance containing the layers
-     * to display.
-     *
-     * @param content the map content
-     */
-    public void setMapContent(MapContent content);
-    
-    /**
-     * Gets the current mouse event dispatcher which is responsible for converting
-     * each input Java AWT mouse event into a {@linkplain com.adcc.geotools.swing.event.MapMouseEvent}
-     * and forwarding it to each {@linkplain MapMouseListener}.
-     * 
-     * @return the current mouse event dispatcher (may be {@code null})
-     */
-    public MapMouseEventDispatcher getMouseEventDispatcher();
-    
-    /**
-     * Replaces the current mouse event dispatcher. All current listeners will
-     * be removed. It is the responsibility of the client to add them to the new 
-     * dispatcher if this is desired.
-     * 
-     * @param dispatcher the new dispatcher (may be {@code null})
-     */
-    public  void setMouseEventDispatcher(MapMouseEventDispatcher dispatcher);
+	/**
+	 * 设置当前的地图上下文
+	 * 
+	 * @param content
+	 */
+	public void setMapContent(MapContent content);
 
-    /**
-     * Gets the current display area in world coordinates. This is a
-     * short-cut for {@code mapPane.getMapContent().getViewport().getBounds()}.
-     * If a MapContent object has not yet been associated with the map pane, an
-     * empty {@code ReferencedEnvelope} is returned.
-     *
-     * @return the display area in world coordinates
-     */
-    public ReferencedEnvelope getDisplayArea();
+	/**
+	 * 获取鼠标操作包装对象
+	 * 
+	 * @return
+	 */
+	public MapMouseEventDispatcher getMouseEventDispatcher();
 
-    /**
-     * Sets the area to display in world units.
-     * 
-     * @param the new display area
-     * @throws IllegalArgumentException if {@code envelope} is {@code null]
-     */
-    public void setDisplayArea(Envelope envelope);
-    
-    /**
-     * Reset the map area to include the full extent of all
-     * layers and redraw the display
-     */
-    public void reset();
-    
-    /**
-     * Gets the screen to world coordinate transform. This is a short-cut for
-     * {@code mapPane.getMapContent().getViewport().getScreenToWorld()}.
-     *
-     * @return the screen to world coordinate transform
-     */
-    public AffineTransform getScreenToWorldTransform();
+	/**
+	 * 设置鼠标操作包装对象
+	 * 
+	 * @param dispatcher
+	 */
+	public void setMouseEventDispatcher(MapMouseEventDispatcher dispatcher);
 
-    /**
-     * Gets the world to screen coordinate transform. This is a short-cut for
-     * {@code mapPane.getMapContent().getViewport().getWorldToScreen()}.
-     * <p>
-     * The returned {@code AffineTransform} can be used to determine the 
-     * current drawing scale...
-     * <pre><code>
-     * double scale = mapPane.getWorldToScreenTransform().getScaleX();
-     * </code></pre>
-     *
-     * @return the world to screen coordinate transform
-     */
-    public AffineTransform getWorldToScreenTransform();
+	/**
+	 * 获取当前的显示地理范围
+	 * 
+	 * @return
+	 */
+	public ReferencedEnvelope getDisplayArea();
 
-    /**
-     * Adds a listener to receive {@link com.adcc.geotools.swing.event.MapPaneEvent}s.
-     *
-     * @param listener the listener to add
-     * 
-     * @throws IllegalArgumentException if {@code listener} is {@code null}
-     */
-    public void addMapPaneListener(MapPaneListener listener);
-    
-    /**
-     * Removes the specified listener.
-     *
-     * @param listener the listener to remove
-     */
-    public void removeMapPaneListener(MapPaneListener listener);
+	/**
+	 * 设置当前的地理坐标系到
+	 * 
+	 * @param envelope
+	 */
+	public void setDisplayArea(Envelope envelope);
 
-    /**
-     * Registers an object that wishes to receive {@code MapMouseEvent}s
-     * such as a {@linkplain StatusBar}.
-     *
-     * @param listener the listener to add
-     * @throws IllegalArgumentException if listener is null
-     * @see MapMouseListener
-     */
-    public void addMouseListener(MapMouseListener listener);
+	/**
+	 * 转换地图到全景区域并重绘
+	 */
+	public void reset();
 
-    /**
-     * Removes the specified listener.
-     *
-     * @param listener the listener to remove
-     */
-    public void removeMouseListener(MapMouseListener listener);
-    
-    /**
-     * Gets the current cursor tool.
-     * 
-     * @return the current cursor tool (may be {@code null})
-     */
-    public CursorTool getCursorTool();
+	/**
+	 * 获取屏幕坐标系到地理坐标系的转换
+	 * 
+	 * @return
+	 */
+	public AffineTransform getScreenToWorldTransform();
 
-    /**
-     * Sets the current cursor tool.
-     *
-     * @param tool the tool; or {@code null} for no cursor tool
-     */
-    public void setCursorTool(CursorTool tool);
-    
-    /**
-     * Moves the image(s) displayed by the map pane from the current
-     * origin (x,y) (device pixels) to (x+dx, y+dy). If this method is
-     * called when the map pane is not visible, or when the pane's 
-     * visible rectangle is empty, it is ignored.
-     * 
-     * @param dx the x offset in pixels
-     * @param dy the y offset in pixels.
-     */
-    public void moveImage(int dx, int dy);
-    
-    /**
-     * 重绘画布
-     */
-    public void repaint();
-    
-    /**
-     * 增加绘制listener
-     * @param listener
-     */
-    public void addPaintListener(MapPaintListener listener);
-    
-    /**
-     * 移除绘制listener
-     * @param listener
-     */
-    public void removePaintListener(MapPaintListener listener);
+	/**
+	 * 获取地理信息坐标系到屏幕的转换
+	 * 
+	 * @return
+	 */
+	public AffineTransform getWorldToScreenTransform();
+
+	/**
+	 * 添加地图操作监听
+	 * 
+	 * @param listener
+	 */
+	public void addMapPaneListener(MapPaneListener listener);
+
+	/**
+	 * 移除地图操作事件监听
+	 * 
+	 * @param listener
+	 */
+	public void removeMapPaneListener(MapPaneListener listener);
+
+	/**
+	 * 添加鼠标事件 {@linkplain StatusBar}
+	 * 
+	 * @param listener
+	 */
+	public void addMouseListener(MapMouseListener listener);
+
+	/**
+	 * 移除鼠标事件
+	 * 
+	 * @param listener
+	 */
+	public void removeMouseListener(MapMouseListener listener);
+	
+	/**
+	 * 增加绘制listener
+	 * 
+	 * @param listener
+	 */
+	public void addPaintListener(MapPaintListener listener);
+
+	/**
+	 * 移除绘制listener
+	 * 
+	 * @param listener
+	 */
+	public void removePaintListener(MapPaintListener listener);
+
+	/**
+	 * 获取当前的操作工具对象
+	 * 
+	 * @return
+	 */
+	public CursorTool getCursorTool();
+
+	/**
+	 * 设置当前的操作工具对象
+	 * 
+	 * @param tool
+	 */
+	public void setCursorTool(CursorTool tool);
+
+	/**
+	 * 拖动图片位置的操作
+	 * 
+	 * @param dx
+	 *            x轴偏移量
+	 * @param dy
+	 *            y轴偏移量
+	 */
+	public void moveImage(int dx, int dy);
+
+	/**
+	 * 重绘地图操作
+	 * 
+	 * @param resize
+	 *            当size发生变化对手执行的操作
+	 */
+	public void repaint(boolean resize);
+	
+	/**
+	 * 刷新，不重绘地图
+	 */
+	public void refresh();
+
+	/**
+	 * 获取世界的中心点，获取的是地理信息位置 返回的是world coordinates
+	 * 
+	 * @return
+	 */
+	public DirectPosition2D getMapCenter();
+	
+	/**
+	 * 获取当前画布的可视范围大小(像素)
+	 * @return
+	 */
+	public Rectangle getVisibleRectangle();
+
+	/**
+	 * 获取绘制对象
+	 * 
+	 * @return
+	 */
+	public GTRenderer getRenderer();
+
+	/**
+	 * 设置绘制对象
+	 * 
+	 * @param renderer
+	 */
+	public void setRenderer(GTRenderer renderer);
 }
