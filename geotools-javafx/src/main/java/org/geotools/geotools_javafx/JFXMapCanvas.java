@@ -688,10 +688,9 @@ public class JFXMapCanvas extends Canvas implements MapPane, MapLayerListListene
 			baseImage = new BufferedImage(r.width, r.height, BufferedImage.TYPE_INT_ARGB);
 			clearLabelCache = true;
 			memory2D = baseImage.createGraphics();
-		} else {
-			memory2D.setBackground(Color.WHITE);
-			memory2D.clearRect(0, 0, r.width, r.height);
 		}
+		memory2D.setBackground(Color.BLACK);
+		memory2D.clearRect(0, 0, r.width, r.height);
 
 		this.renderer.paint(memory2D, r, this.mapContent.getMaxBounds(), getWorldToScreenTransform());
 

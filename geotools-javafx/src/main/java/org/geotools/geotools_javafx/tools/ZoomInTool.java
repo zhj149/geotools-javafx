@@ -18,7 +18,6 @@
 package org.geotools.geotools_javafx.tools;
 
 import java.awt.Cursor;
-import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.geom.Point2D;
@@ -27,7 +26,6 @@ import org.geotools.geometry.DirectPosition2D;
 import org.geotools.geometry.Envelope2D;
 import org.geotools.geotools_javafx.MapPane;
 import org.geotools.geotools_javafx.event.MapMouseEvent;
-import org.geotools.geotools_javafx.event.MapPaintListener;
 
 /**
  * A cursor tool to zoom in the map pane display.
@@ -50,7 +48,7 @@ import org.geotools.geotools_javafx.event.MapPaintListener;
  * @source $URL$
  * @version $Id$
  */
-public class ZoomInTool extends AbstractZoomTool implements MapPaintListener {
+public class ZoomInTool extends AbstractZoomTool implements DragBoxMapPaintListener {
 
 	/** Tool name */
 	public static final String TOOL_NAME = "ZoomIn";
@@ -66,7 +64,7 @@ public class ZoomInTool extends AbstractZoomTool implements MapPaintListener {
 	private final Point startPosDevice;
 	private final Point endPosDevice;
 	private final Point2D startPosWorld;
-	private boolean dragged;
+	private volatile boolean dragged;
 
 	/**
 	 * Constructor
@@ -173,14 +171,26 @@ public class ZoomInTool extends AbstractZoomTool implements MapPaintListener {
 	}
 
 	/**
-	 * 绘制矩形哦
+	 * {@inheritDoc}
 	 */
 	@Override
-	public void afterPaint(Graphics2D g2d) {
-		if (g2d != null && this.dragged) {
-			g2d.drawRect(startPosDevice.x, startPosDevice.y, endPosDevice.x - startPosDevice.x,
-					endPosDevice.y - startPosDevice.y);
-		}
+	public boolean isDrag() {
+		return this.dragged;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public Point getStartDevicePos() {
+		return this.startPosDevice;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public Point getEndDevicePos() {
+		return this.endPosDevice;
+	}
 }
