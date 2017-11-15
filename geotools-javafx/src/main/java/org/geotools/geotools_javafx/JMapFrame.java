@@ -31,8 +31,6 @@ import javafx.stage.Stage;
  */
 public class JMapFrame extends Application {
 	
-	private double actualZoom = 0.3d; 
-
 	/**
 	 * 窗口的启动
 	 */
