@@ -52,7 +52,7 @@ import javafx.scene.input.ScrollEvent;
  * @author sam
  *
  */
-public class JFXMapPane extends Canvas implements MapPane, MapLayerListListener, MapBoundsListener {
+public class JFXMapCanvas extends Canvas implements MapPane, MapLayerListListener, MapBoundsListener {
 
 	/**
 	 * 重绘间隔
@@ -147,7 +147,7 @@ public class JFXMapPane extends Canvas implements MapPane, MapLayerListListener,
 	 * 
 	 * @param content
 	 */
-	public JFXMapPane(MapContent content) {
+	public JFXMapCanvas(MapContent content) {
 
 		// 实现画布
 		g2d = new FXGraphics2D(this.getGraphicsContext2D());
@@ -565,8 +565,8 @@ public class JFXMapPane extends Canvas implements MapPane, MapLayerListListener,
 	 */
 	@Override
 	public void reset() {
-		if (fullExtent != null) {
-			setDisplayArea(fullExtent);
+		if (mapContent != null) {
+			setDisplayArea(mapContent.getMaxBounds());
 		}
 	}
 
@@ -739,7 +739,13 @@ public class JFXMapPane extends Canvas implements MapPane, MapLayerListListener,
 	 */
 	@Override
 	public Rectangle getVisibleRectangle() {
-		return new Rectangle(0, 0, (int) this.getWidth(), (int) this.getHeight());
+		Rectangle rectangle = new Rectangle(0, 0, (int) this.getWidth(), (int) this.getHeight());
+		//javafx画布在初始化的时候，是没有大小的，所以为了防止出错，给个默认大小
+		if (rectangle.isEmpty()){
+			rectangle.width = 640;
+			rectangle.height = 480;
+		}
+		return rectangle;
 	}
 
 	/**

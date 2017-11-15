@@ -59,7 +59,7 @@ public class JMapFrame extends Application {
 			return;
 		}
 
-		JFXMapPane map = new JFXMapPane(mapContent);
+		JFXMapCanvas map = new JFXMapCanvas(mapContent);
 		map.setWidth(1024);
 		map.setHeight(768);
 		StackPane root = new StackPane();
