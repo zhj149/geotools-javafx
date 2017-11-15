@@ -19,6 +19,7 @@ package org.geotools.geotools_javafx.tools;
 
 import java.awt.Cursor;
 
+import org.geotools.geotools_javafx.MapListener;
 import org.geotools.geotools_javafx.MapPane;
 import org.geotools.geotools_javafx.event.MapMouseAdapter;
 
@@ -33,15 +34,26 @@ import org.geotools.geotools_javafx.event.MapMouseAdapter;
  * @source $URL$
  * @version $Id$
  */
-public abstract class CursorTool extends MapMouseAdapter {
+public abstract class CursorTool extends MapMouseAdapter implements MapListener {
 
     private MapPane mapPane;
+    
+    /**
+     * Get the map pane that this tool is servicing
+     *
+     * @return the map pane
+     */
+    @Override
+    public MapPane getMapPane() {
+    	return mapPane;
+    }
 
     /**
      * Set the map pane that this cursor tool is associated with
      * @param pane the map pane
      * @throws IllegalArgumentException if mapPane is null
      */
+    @Override
     public void setMapPane(MapPane pane) {
         if (pane == null) {
             throw new IllegalArgumentException("pane arg must not be null");
@@ -57,15 +69,6 @@ public abstract class CursorTool extends MapMouseAdapter {
      */
     public void unUsed(){
     	mapPane.removeMouseListener(this);
-    }
-
-    /**
-     * Get the map pane that this tool is servicing
-     *
-     * @return the map pane
-     */
-    public MapPane getMapPane() {
-        return mapPane;
     }
 
     /**

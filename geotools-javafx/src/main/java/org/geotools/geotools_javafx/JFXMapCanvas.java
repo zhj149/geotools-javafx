@@ -163,6 +163,7 @@ public class JFXMapCanvas extends Canvas implements MapPane, MapLayerListListene
 		this.addEventHandler(MouseEvent.MOUSE_EXITED, mapMouseEventDispatcher.getMouseExited());
 		this.addEventHandler(MouseEvent.MOUSE_MOVED, mapMouseEventDispatcher.getMouseMoved());
 		this.addEventHandler(ScrollEvent.SCROLL, mapMouseEventDispatcher.getMouseWheelMoved());
+		
 	}
 
 	// begin functions

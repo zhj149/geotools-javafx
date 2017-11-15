@@ -19,6 +19,7 @@ package org.geotools.geotools_javafx.event;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.geotools.geotools_javafx.MapListener;
 import org.geotools.geotools_javafx.MapPane;
 
 import javafx.event.EventHandler;
@@ -35,7 +36,7 @@ import javafx.scene.input.ScrollEvent;
  * @source $URL$
  * @version $Id$
  */
-public class DefaultMapMouseEventDispatcher implements MapMouseEventDispatcher {
+public class DefaultMapMouseEventDispatcher implements MapMouseEventDispatcher, MapListener {
 
 	/**
 	 * 当前的地图操作上下文
@@ -93,12 +94,12 @@ public class DefaultMapMouseEventDispatcher implements MapMouseEventDispatcher {
 	public void removeAllListeners() {
 		listeners.clear();
 	}
-	
+
 	/**
 	 * {@inheritDoc}
 	 */
 	@Override
-	public List<MapMouseListener> getAllListeners(){
+	public List<MapMouseListener> getAllListeners() {
 		return new ArrayList<>(this.listeners);
 	}
 
@@ -107,7 +108,7 @@ public class DefaultMapMouseEventDispatcher implements MapMouseEventDispatcher {
 	 */
 	@Override
 	public EventHandler<MouseEvent> getMouseClicked() {
-		
+
 		return (MouseEvent event) -> {
 			MapMouseEvent mapEv = convertEvent(event);
 			if (mapEv != null) {
@@ -123,7 +124,7 @@ public class DefaultMapMouseEventDispatcher implements MapMouseEventDispatcher {
 	 */
 	@Override
 	public EventHandler<MouseEvent> getMousePressed() {
-		
+
 		return (MouseEvent event) -> {
 			MapMouseEvent mapEv = convertEvent(event);
 			if (mapEv != null) {
@@ -136,11 +137,12 @@ public class DefaultMapMouseEventDispatcher implements MapMouseEventDispatcher {
 
 	/**
 	 * {@inheritDoc}
+	 * 
 	 * @param ev
 	 */
 	@Override
 	public EventHandler<MouseEvent> getMouseReleased() {
-		
+
 		return (MouseEvent event) -> {
 			MapMouseEvent mapEv = convertEvent(event);
 			if (mapEv != null) {
@@ -156,7 +158,7 @@ public class DefaultMapMouseEventDispatcher implements MapMouseEventDispatcher {
 	 */
 	@Override
 	public EventHandler<MouseEvent> getMouseEntered() {
-		
+
 		return (MouseEvent event) -> {
 			MapMouseEvent mapEv = convertEvent(event);
 			if (mapEv != null) {
@@ -172,7 +174,7 @@ public class DefaultMapMouseEventDispatcher implements MapMouseEventDispatcher {
 	 */
 	@Override
 	public EventHandler<MouseEvent> getMouseExited() {
-		
+
 		return (MouseEvent event) -> {
 			MapMouseEvent mapEv = convertEvent(event);
 			if (mapEv != null) {
@@ -185,12 +187,13 @@ public class DefaultMapMouseEventDispatcher implements MapMouseEventDispatcher {
 
 	/**
 	 * {@inheritDoc}
+	 * 
 	 * @param ev
 	 * @return
 	 */
 	@Override
 	public EventHandler<MouseEvent> getMouseDragged() {
-		
+
 		return (MouseEvent event) -> {
 			MapMouseEvent mapEv = convertEvent(event);
 			if (mapEv != null) {
@@ -206,7 +209,7 @@ public class DefaultMapMouseEventDispatcher implements MapMouseEventDispatcher {
 	 */
 	@Override
 	public EventHandler<MouseEvent> getMouseMoved() {
-		
+
 		return (MouseEvent event) -> {
 			MapMouseEvent mapEv = convertEvent(event);
 			if (mapEv != null) {
@@ -215,7 +218,7 @@ public class DefaultMapMouseEventDispatcher implements MapMouseEventDispatcher {
 				}
 			}
 		};
-		
+
 	}
 
 	/**
@@ -223,7 +226,7 @@ public class DefaultMapMouseEventDispatcher implements MapMouseEventDispatcher {
 	 */
 	@Override
 	public EventHandler<ScrollEvent> getMouseWheelMoved() {
-		
+
 		return (ScrollEvent event) -> {
 			MapMouseEvent mapEv = convertEvent(event);
 			if (mapEv != null) {
@@ -232,7 +235,7 @@ public class DefaultMapMouseEventDispatcher implements MapMouseEventDispatcher {
 				}
 			}
 		};
-		
+
 	}
 
 	/**
@@ -261,5 +264,21 @@ public class DefaultMapMouseEventDispatcher implements MapMouseEventDispatcher {
 		return mapEv;
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public MapPane getMapPane() {
+		// TODO Auto-generated method stub
+		return this.mapPane;
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public void setMapPane(MapPane mapPane) {
+		this.mapPane = mapPane;
+	}
 
 }
