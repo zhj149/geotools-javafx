@@ -124,7 +124,7 @@ public final class MapMouseEvent extends MouseEvent {
      * @return
      */
     public Point getPoint(){
-    	return new Point((int)this.getX() , (int)this.getY());
+    	return new Point((int)this.getSceneX(), (int)this.getSceneY());
     }
     
     /**
@@ -164,8 +164,8 @@ public final class MapMouseEvent extends MouseEvent {
         }
         
         Rectangle2D screenRect = new Rectangle2D.Double(
-                getX() - (widthPixels / 2),
-                getY() - (widthPixels / 2),
+        		getSceneX() - (widthPixels / 2),
+        		getSceneY() - (widthPixels / 2),
                 widthPixels, widthPixels);
         
         MapPane pane = getSource();
@@ -185,7 +185,7 @@ public final class MapMouseEvent extends MouseEvent {
      */
     private DirectPosition2D calculateWorldPos(MapPane pane, MouseEvent event) {
         AffineTransform tr = pane.getScreenToWorldTransform();
-        DirectPosition2D pos = new DirectPosition2D(event.getX(), event.getY());
+        DirectPosition2D pos = new DirectPosition2D(event.getSceneX(), event.getSceneY());
         tr.transform(pos, pos);
         pos.setCoordinateReferenceSystem(pane.getMapContent().getCoordinateReferenceSystem());
         return pos;

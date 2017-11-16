@@ -16,6 +16,7 @@
  */
 package org.geotools.geotools_javafx;
 
+import java.awt.Color;
 import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
 
@@ -51,6 +52,18 @@ public interface MapPane {
 	 * @param content
 	 */
 	public void setMapContent(MapContent content);
+	
+	/**
+	 * 获取画布的背景填充色
+	 * @return
+	 */
+	public Color getBackground();
+	
+	/**
+	 * 设置画布的背景填充色
+	 * @param color
+	 */
+	public void setBackground(Color color);
 
 	/**
 	 * 获取鼠标操作包装对象
@@ -164,6 +177,13 @@ public interface MapPane {
 	 *            y轴偏移量
 	 */
 	public void moveImage(int dx, int dy);
+	
+	/**
+	 * 将视界平移并重绘
+	 * @param dx x轴平移量
+	 * @param dy y轴平移量
+	 */
+	public void move(int dx,int dy);
 
 	/**
 	 * 重绘地图操作

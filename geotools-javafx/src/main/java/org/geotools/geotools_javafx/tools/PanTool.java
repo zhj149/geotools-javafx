@@ -32,69 +32,86 @@ import org.geotools.geotools_javafx.event.MapMouseEvent;
  * @version $Id$
  */
 public class PanTool extends CursorTool {
-    
-    /** Tool name */
-    public static final String TOOL_NAME = "PanTool";
-    
-    /** Tool tip text */
-    public static final String TOOL_TIP = "PanTool";
-    
-    /** Cursor hotspot coordinates */
-    public static final Point CURSOR_HOTSPOT = new Point(15, 15);
-    
-    private Cursor cursor;
 
-    private Point panePos;
-    boolean panning;
-    
-    /**
-     * Constructor
-     */
-    public PanTool() {
-        panning = false;
-    }
+	/** Tool name */
+	public static final String TOOL_NAME = "PanTool";
 
-    /**
-     * Respond to a mouse button press event from the map mapPane. This may
-     * signal the start of a mouse drag. Records the event's window position.
-     * @param ev the mouse event
-     */
-    @Override
-    public void onMousePressed(MapMouseEvent ev) {
-        panePos = ev.getPoint();
-        panning = true;
-    }
+	/** Tool tip text */
+	public static final String TOOL_TIP = "PanTool";
 
-    /**
-     * Respond to a mouse dragged event. Calls {@link com.adcc.geotools.swing.MapPane#moveImage()}
-     * @param ev the mouse event
-     */
-    @Override
-    public void onMouseDragged(MapMouseEvent ev) {
-        if (panning) {
-            Point pos = ev.getPoint();
-            if (!pos.equals(panePos)) {
-                getMapPane().moveImage(pos.x - panePos.x, pos.y - panePos.y);
-                panePos = pos;
-            }
-        }
-    }
+	private Cursor cursor;
 
-    /**
-     * If this button release is the end of a mouse dragged event, requests the
-     * map mapPane to repaint the display
-     * @param ev the mouse event
-     */
-    @Override
-    public void onMouseReleased(MapMouseEvent ev) {
-        panning = false;
-    }
+	/**
+	 * 鼠标按下的时候的拖动点
+	 */
+	private final Point beginPos;
 
-    /**
-     * Get the mouse cursor for this tool
-     */
-    @Override
-    public Cursor getCursor() {
-        return cursor;
-    }    
+	/**
+	 * 鼠标松手的位置点
+	 */
+	private final Point endPos;
+
+	boolean panning;
+
+	/**
+	 * Constructor
+	 */
+	public PanTool() {
+		panning = false;
+		beginPos = new Point(0, 0);
+		endPos = new Point(0, 0);
+	}
+
+	/**
+	 * Respond to a mouse button press event from the map mapPane. This may
+	 * signal the start of a mouse drag. Records the event's window position.
+	 * 
+	 * @param ev
+	 *            the mouse event
+	 */
+	@Override
+	public void onMousePressed(MapMouseEvent ev) {
+		beginPos.setLocation(ev.getSceneX() , ev.getSceneY());
+		panning = true;
+	}
+
+	/**
+	 * Respond to a mouse dragged event. Calls
+	 * {@link com.adcc.geotools.swing.MapPane#moveImage()}
+	 * 
+	 * @param ev
+	 *            the mouse event
+	 */
+	@Override
+	public void onMouseDragged(MapMouseEvent ev) {
+		if (panning) {
+			endPos.setLocation(ev.getSceneX() , ev.getSceneY());
+			if (!beginPos.equals(endPos)) {
+				getMapPane().moveImage(endPos.x - beginPos.x, endPos.y - beginPos.y);
+			}
+		}
+	}
+
+	/**
+	 * If this button release is the end of a mouse dragged event, requests the
+	 * map mapPane to repaint the display
+	 * 
+	 * @param ev
+	 *            the mouse event
+	 */
+	@Override
+	public void onMouseReleased(MapMouseEvent ev) {
+		getMapPane().move(endPos.x - beginPos.x, endPos.y - beginPos.y);
+		panning = false;
+		beginPos.setLocation(0, 0);
+		endPos.setLocation(0, 0);
+	}
+
+	/**
+	 * Get the mouse cursor for this tool
+	 */
+	@Override
+	public Cursor getCursor() {
+		return cursor;
+	}
 }

@@ -121,7 +121,7 @@ public class JFXMapCanvas extends Canvas implements MapPane, MapLayerListListene
 	 * 鼠标操作事件包装对象
 	 */
 	protected MapMouseEventDispatcher mapMouseEventDispatcher;
-	
+
 	/**
 	 * 当前的鼠标操作工具
 	 */
@@ -143,6 +143,11 @@ public class JFXMapCanvas extends Canvas implements MapPane, MapLayerListListene
 	private AffineTransform screenToWorld;
 
 	/**
+	 * 背景的填充色
+	 */
+	private Color backgroundColor = new Color(5198932);
+
+	/**
 	 * javafx实现的geotools画布对象
 	 * 
 	 * @param content
@@ -151,6 +156,7 @@ public class JFXMapCanvas extends Canvas implements MapPane, MapLayerListListene
 
 		// 实现画布
 		g2d = new FXGraphics2D(this.getGraphicsContext2D());
+		g2d.setBackground(this.backgroundColor);
 		doSetRenderer(new StreamingRenderer());
 		this.setMapContent(content);
 
@@ -163,7 +169,7 @@ public class JFXMapCanvas extends Canvas implements MapPane, MapLayerListListene
 		this.addEventHandler(MouseEvent.MOUSE_EXITED, mapMouseEventDispatcher.getMouseExited());
 		this.addEventHandler(MouseEvent.MOUSE_MOVED, mapMouseEventDispatcher.getMouseMoved());
 		this.addEventHandler(ScrollEvent.SCROLL, mapMouseEventDispatcher.getMouseWheelMoved());
-		
+
 	}
 
 	// begin functions
@@ -488,6 +494,25 @@ public class JFXMapCanvas extends Canvas implements MapPane, MapLayerListListene
 	/**
 	 * {@inheritDoc}
 	 */
+	public Color getBackground() {
+		return this.backgroundColor;
+	}
+
+	/**
+	 * 设置画布的背景填充色
+	 * 
+	 * @param color
+	 */
+	public void setBackground(Color color) {
+		if (color != null){
+			this.backgroundColor = color;
+			g2d.setBackground(color);
+		}
+	}
+
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	public MapMouseEventDispatcher getMouseEventDispatcher() {
 		return mapMouseEventDispatcher;
@@ -656,16 +681,15 @@ public class JFXMapCanvas extends Canvas implements MapPane, MapLayerListListene
 	/**
 	 * {@inheritDoc}
 	 */
-	@Override 
+	@Override
 	public void setCursorTool(CursorTool tool) {
-		if(this.cursorTool != null){
+		if (this.cursorTool != null) {
 			this.cursorTool.unUsed();
-			this.cursorTool.setMapPane(null);
 		}
-		
+
 		this.cursorTool = tool;
-		
-		if (this.cursorTool != null){
+
+		if (this.cursorTool != null) {
 			this.cursorTool.setMapPane(this);
 		}
 	}
@@ -675,7 +699,27 @@ public class JFXMapCanvas extends Canvas implements MapPane, MapLayerListListene
 	 */
 	@Override
 	public void moveImage(int dx, int dy) {
+		if (this.baseImage != null) {
+			g2d.clearRect(0, 0, (int)this.getWidth(), (int)this.getHeight());
+			g2d.drawImage(baseImage, dx, dy, null);
+		}
+	}
 
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public void move(int dx, int dy) {
+		
+		final ReferencedEnvelope env = mapContent.getViewport().getBounds();
+		if (env == null)
+			return;
+		DirectPosition2D newPos = new DirectPosition2D(dx, dy);
+		screenToWorld.transform(newPos, newPos);
+
+		env.translate(env.getMinimum(0) - newPos.x, env.getMaximum(1) - newPos.y);
+		doSetDisplayArea(env);
+		this.repaint(false);
 	}
 
 	/**
@@ -690,7 +734,7 @@ public class JFXMapCanvas extends Canvas implements MapPane, MapLayerListListene
 			clearLabelCache = true;
 			memory2D = baseImage.createGraphics();
 		}
-		memory2D.setBackground(Color.BLACK);
+		memory2D.setBackground(this.backgroundColor);
 		memory2D.clearRect(0, 0, r.width, r.height);
 
 		this.renderer.paint(memory2D, r, this.mapContent.getMaxBounds(), getWorldToScreenTransform());
@@ -740,8 +784,8 @@ public class JFXMapCanvas extends Canvas implements MapPane, MapLayerListListene
 	@Override
 	public Rectangle getVisibleRectangle() {
 		Rectangle rectangle = new Rectangle(0, 0, (int) this.getWidth(), (int) this.getHeight());
-		//javafx画布在初始化的时候，是没有大小的，所以为了防止出错，给个默认大小
-		if (rectangle.isEmpty()){
+		// javafx画布在初始化的时候，是没有大小的，所以为了防止出错，给个默认大小
+		if (rectangle.isEmpty()) {
 			rectangle.width = 640;
 			rectangle.height = 480;
 		}

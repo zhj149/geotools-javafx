@@ -3,13 +3,13 @@ package org.geotools.geotools_javafx;
 import java.awt.Color;
 import java.io.File;
 import java.util.List;
-import java.util.Timer;
-import java.util.TimerTask;
 
 import org.geotools.data.FileDataStore;
 import org.geotools.data.FileDataStoreFinder;
 import org.geotools.data.simple.SimpleFeatureSource;
-import org.geotools.geotools_javafx.tools.ZoomInTool;
+import org.geotools.geotools_javafx.action.PanAction;
+import org.geotools.geotools_javafx.action.RestAction;
+import org.geotools.geotools_javafx.action.ZoomInAction;
 import org.geotools.map.FeatureLayer;
 import org.geotools.map.Layer;
 import org.geotools.map.MapContent;
@@ -18,7 +18,12 @@ import org.geotools.styling.Style;
 
 import javafx.application.Application;
 import javafx.scene.Scene;
-import javafx.scene.layout.StackPane;
+import javafx.scene.control.Button;
+import javafx.scene.control.Tooltip;
+import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.FileChooser.ExtensionFilter;
 import javafx.stage.Stage;
@@ -30,7 +35,7 @@ import javafx.stage.Stage;
  *
  */
 public class JMapFrame extends Application {
-	
+
 	/**
 	 * 窗口的启动
 	 */
@@ -44,7 +49,7 @@ public class JMapFrame extends Application {
 		mapContent.setTitle("Quickstart");
 
 		List<File> files = fileChooser.showOpenMultipleDialog(primaryStage);
-		if (files != null && !files.isEmpty()){
+		if (files != null && !files.isEmpty()) {
 			for (File file : files) {
 				FileDataStore store = FileDataStoreFinder.getDataStore(file);
 				SimpleFeatureSource featureSource = store.getFeatureSource();
@@ -53,14 +58,42 @@ public class JMapFrame extends Application {
 				Layer layer = new FeatureLayer(featureSource, style);
 				mapContent.addLayer(layer);
 			}
-		}else{
+		} else {
 			return;
 		}
+		HBox toolBar = new HBox(5);
+		VBox root = new VBox();
 
 		JFXMapCanvas map = new JFXMapCanvas(mapContent);
 		map.setWidth(1024);
 		map.setHeight(768);
-		StackPane root = new StackPane();
+
+		// 执行的动作
+		RestAction restAction = new RestAction(map);
+		ZoomInAction zoomInAction = new ZoomInAction(map);
+		PanAction paneAction = new PanAction(map);
+
+		// reset按钮
+		Button btnRest = new Button("", new ImageView("/mActionZoomFullExtent.png"));
+		btnRest.setMinSize(24, 24);
+		btnRest.setTooltip(new Tooltip("重置"));
+		btnRest.addEventHandler(MouseEvent.MOUSE_CLICKED, restAction);
+
+		// 放大按钮
+		Button btnZoomIn = new Button("", new ImageView("/mActionZoomIn.png"));
+		btnZoomIn.setMinSize(24, 24);
+		btnZoomIn.setTooltip(new Tooltip("放大"));
+		btnZoomIn.addEventHandler(MouseEvent.MOUSE_CLICKED, zoomInAction);
+
+		// 拖动按钮
+		Button btnPane = new Button("", new ImageView("/mActionPan.png"));
+		btnPane.setMinSize(24, 24);
+		btnPane.setTooltip(new Tooltip("拖动"));
+		btnPane.addEventHandler(MouseEvent.MOUSE_CLICKED, paneAction);
+
+		toolBar.getChildren().addAll(btnRest, btnZoomIn, btnPane);
+
+		root.getChildren().add(toolBar);
 		root.getChildren().add(map);
 
 		Scene scene = new Scene(root, 1024, 768);
@@ -69,16 +102,8 @@ public class JMapFrame extends Application {
 		primaryStage.setScene(scene);
 		primaryStage.show();
 
-		Timer timer = new Timer("123");
-		
-		timer.schedule(new TimerTask() {
+		map.repaint(true);
 
-			@Override
-			public void run() {
-				map.repaint(true);
-				map.setCursorTool(new ZoomInTool());
-			}
-		}, 1000);
 	}
 
 	/**

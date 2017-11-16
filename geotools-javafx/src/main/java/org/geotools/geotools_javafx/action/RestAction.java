@@ -20,6 +20,12 @@ public class RestAction extends AbstractMapAction {
 	public RestAction(MapPane mapPane) {
 		super(mapPane);
 	}
+	
+	/**
+	 * 不带地图上下文的构造函数
+	 */
+	public RestAction() {
+	}
 
 	/**
 	 * 地图初始化的动作

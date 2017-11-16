@@ -21,6 +21,12 @@ public abstract class AbstractMapAction implements MapAction {
 	public AbstractMapAction(MapPane mapPane){
 		this.setMapPane(mapPane);
 	}
+	
+	/**
+	 * 所有的工具控件的基类
+	 */
+	public AbstractMapAction(){
+	}
 
 	/**
 	 * 画布对象
