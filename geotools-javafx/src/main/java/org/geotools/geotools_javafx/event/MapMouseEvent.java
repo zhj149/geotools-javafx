@@ -185,7 +185,7 @@ public final class MapMouseEvent extends MouseEvent {
      */
     private DirectPosition2D calculateWorldPos(MapPane pane, MouseEvent event) {
         AffineTransform tr = pane.getScreenToWorldTransform();
-        DirectPosition2D pos = new DirectPosition2D(event.getSceneX(), event.getSceneY());
+        DirectPosition2D pos = new DirectPosition2D(event.getX(), event.getY());
         tr.transform(pos, pos);
         pos.setCoordinateReferenceSystem(pane.getMapContent().getCoordinateReferenceSystem());
         return pos;

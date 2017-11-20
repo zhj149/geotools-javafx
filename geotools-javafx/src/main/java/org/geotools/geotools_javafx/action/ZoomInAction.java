@@ -3,7 +3,7 @@ package org.geotools.geotools_javafx.action;
 import org.geotools.geotools_javafx.MapPane;
 import org.geotools.geotools_javafx.tools.ZoomInTool;
 
-import javafx.scene.input.MouseEvent;
+import javafx.event.ActionEvent;
 
 /**
  * 放大操作
@@ -33,7 +33,7 @@ public class ZoomInAction extends AbstractMapAction {
 	 * 放大操作
 	 */
 	@Override
-	public void handle(MouseEvent event) {
+	public void handle(ActionEvent event) {
 		if (this.getMapPane() != null) {
 			this.getMapPane().setCursorTool(new ZoomInTool());
 		}

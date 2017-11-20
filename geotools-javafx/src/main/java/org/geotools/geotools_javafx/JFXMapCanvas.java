@@ -812,37 +812,65 @@ public class JFXMapCanvas extends Canvas implements MapPane, MapLayerListListene
 
 	// begin layer implements
 
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
 	public void layerAdded(MapLayerListEvent event) {
-		// TODO Auto-generated method stub
-
+		this.reset();
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
 	public void layerRemoved(MapLayerListEvent event) {
-		// TODO Auto-generated method stub
-
+		this.repaint(false);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
 	public void layerChanged(MapLayerListEvent event) {
-		// TODO Auto-generated method stub
-
+		this.repaint(false);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
 	public void layerMoved(MapLayerListEvent event) {
-		// TODO Auto-generated method stub
-
+		this.repaint(false);
 	}
 
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
 	public void layerPreDispose(MapLayerListEvent event) {
-		// TODO Auto-generated method stub
-
+		
 	}
 
 	// end
 
 	// begin mapbound implements
 
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
 	public void mapBoundsChanged(MapBoundsEvent event) {
-
+		int type = event.getType();
+        if ((type & MapBoundsEvent.COORDINATE_SYSTEM_MASK) != 0) {
+            /*
+             * The coordinate reference system has changed. Set the map
+             * to display the full extent of layer bounds to avoid the
+             * effect of a shrinking map
+             */
+            setFullExtent();
+            reset();
+        }
 	}
 
 	// end

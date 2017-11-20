@@ -1,9 +1,10 @@
 package org.geotools.geotools_javafx.action;
 
+
 import org.geotools.geotools_javafx.MapListener;
 
+import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
-import javafx.scene.input.MouseEvent;
 
 /**
  * 地图工具类接口
@@ -11,6 +12,6 @@ import javafx.scene.input.MouseEvent;
  * @author sam
  *
  */
-public interface MapAction extends EventHandler<MouseEvent>, MapListener {
+public interface MapAction extends EventHandler<ActionEvent>, MapListener {
 
 }

@@ -2,7 +2,7 @@ package org.geotools.geotools_javafx.action;
 
 import org.geotools.geotools_javafx.MapPane;
 
-import javafx.scene.input.MouseEvent;
+import javafx.event.ActionEvent;
 
 /**
  * 地图初始化的动作
@@ -31,7 +31,7 @@ public class RestAction extends AbstractMapAction {
 	 * 地图初始化的动作
 	 */
 	@Override
-	public void handle(MouseEvent event) {
+	public void handle(ActionEvent event) {
 		if (this.getMapPane() != null)
 			this.getMapPane().reset();
 	}

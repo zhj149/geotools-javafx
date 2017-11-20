@@ -7,9 +7,12 @@ import java.util.List;
 import org.geotools.data.FileDataStore;
 import org.geotools.data.FileDataStoreFinder;
 import org.geotools.data.simple.SimpleFeatureSource;
+import org.geotools.geotools_javafx.action.OpenShpLayerAction;
 import org.geotools.geotools_javafx.action.PanAction;
 import org.geotools.geotools_javafx.action.RestAction;
 import org.geotools.geotools_javafx.action.ZoomInAction;
+import org.geotools.geotools_javafx.control.MapLayerTableView;
+import org.geotools.geotools_javafx.control.view.tablecolum.LayerNameTableColumn;
 import org.geotools.map.FeatureLayer;
 import org.geotools.map.Layer;
 import org.geotools.map.MapContent;
@@ -19,9 +22,9 @@ import org.geotools.styling.Style;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.SplitPane;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.ImageView;
-import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
@@ -42,26 +45,10 @@ public class JMapFrame extends Application {
 	@Override
 	public void start(Stage primaryStage) throws Exception {
 
-		final FileChooser fileChooser = new FileChooser();
-		// Create a map content and add our shapefile to it
 		MapContent mapContent = new MapContent();
-		fileChooser.setSelectedExtensionFilter(new ExtensionFilter("Arcgis文件", "*.shp"));
+		
 		mapContent.setTitle("Quickstart");
-
-		List<File> files = fileChooser.showOpenMultipleDialog(primaryStage);
-		if (files != null && !files.isEmpty()) {
-			for (File file : files) {
-				FileDataStore store = FileDataStoreFinder.getDataStore(file);
-				SimpleFeatureSource featureSource = store.getFeatureSource();
-
-				Style style = SLD.createSimpleStyle(featureSource.getSchema(), Color.red);
-				Layer layer = new FeatureLayer(featureSource, style);
-				mapContent.addLayer(layer);
-			}
-		} else {
-			return;
-		}
-		HBox toolBar = new HBox(5);
+		HBox toolBar = new HBox();
 		VBox root = new VBox();
 
 		JFXMapCanvas map = new JFXMapCanvas(mapContent);
@@ -72,33 +59,45 @@ public class JMapFrame extends Application {
 		RestAction restAction = new RestAction(map);
 		ZoomInAction zoomInAction = new ZoomInAction(map);
 		PanAction paneAction = new PanAction(map);
+		OpenShpLayerAction shpAction = new OpenShpLayerAction(map);
 
 		// reset按钮
 		Button btnRest = new Button("", new ImageView("/mActionZoomFullExtent.png"));
 		btnRest.setMinSize(24, 24);
 		btnRest.setTooltip(new Tooltip("重置"));
-		btnRest.addEventHandler(MouseEvent.MOUSE_CLICKED, restAction);
+		btnRest.setOnAction(restAction);
 
 		// 放大按钮
 		Button btnZoomIn = new Button("", new ImageView("/mActionZoomIn.png"));
 		btnZoomIn.setMinSize(24, 24);
 		btnZoomIn.setTooltip(new Tooltip("放大"));
-		btnZoomIn.addEventHandler(MouseEvent.MOUSE_CLICKED, zoomInAction);
+		btnZoomIn.setOnAction(zoomInAction);
 
 		// 拖动按钮
 		Button btnPane = new Button("", new ImageView("/mActionPan.png"));
 		btnPane.setMinSize(24, 24);
 		btnPane.setTooltip(new Tooltip("拖动"));
-		btnPane.addEventHandler(MouseEvent.MOUSE_CLICKED, paneAction);
+		btnPane.setOnAction(paneAction);
 
-		toolBar.getChildren().addAll(btnRest, btnZoomIn, btnPane);
+		// 拖动按钮
+		Button shpPane = new Button("", new ImageView("/open.gif"));
+		shpPane.setMinSize(24, 24);
+		shpPane.setTooltip(new Tooltip("导入图层"));
+		shpPane.setOnAction(shpAction);
 
+		toolBar.getChildren().addAll(btnRest, btnZoomIn, btnPane,shpPane);
+
+		//图层表格
+		MapLayerTableView layerTable = new MapLayerTableView();
+		layerTable.getColumns().add(new LayerNameTableColumn());
+		mapContent.addMapLayerListListener(layerTable);
+		
 		root.getChildren().add(toolBar);
-		root.getChildren().add(map);
+		root.getChildren().add(new SplitPane(layerTable , map));
 
 		Scene scene = new Scene(root, 1024, 768);
 
-		primaryStage.setTitle("Hello World!");
+		primaryStage.setTitle("geotools javafx");
 		primaryStage.setScene(scene);
 		primaryStage.show();
 

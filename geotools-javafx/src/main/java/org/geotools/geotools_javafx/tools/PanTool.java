@@ -31,7 +31,7 @@ import org.geotools.geotools_javafx.event.MapMouseEvent;
  * @source $URL$
  * @version $Id$
  */
-public class PanTool extends CursorTool {
+public class PanTool extends AbstractZoomTool  {
 
 	/** Tool name */
 	public static final String TOOL_NAME = "PanTool";
