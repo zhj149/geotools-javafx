@@ -39,7 +39,15 @@
 	</build>
 
 	<dependencies>
-
+		<!-- swing 实现的对象,最终要作废的 -->
+		<dependency>
+			<groupId>com.miglayout</groupId>
+			<artifactId>miglayout-swing</artifactId>
+			<version>4.2</version>
+		</dependency>
+		
+		<!-- swing 实现的对象,最终要作废的 -->
+		
 		<dependency>
 			<groupId>org.geotools</groupId>
 			<artifactId>gt-process</artifactId>
