@@ -4,8 +4,11 @@ import org.geotools.geotools_javafx.action.OpenShpLayerAction;
 import org.geotools.geotools_javafx.action.PanAction;
 import org.geotools.geotools_javafx.action.RestAction;
 import org.geotools.geotools_javafx.action.ZoomInAction;
+import org.geotools.geotools_javafx.action.ZoomOutAction;
 import org.geotools.geotools_javafx.control.MapLayerTableView;
-import org.geotools.geotools_javafx.control.view.tablecolum.LayerNameTableColumn;
+import org.geotools.geotools_javafx.control.view.LayerNameTableColumn;
+import org.geotools.geotools_javafx.control.view.LayerVisibleTableColumn;
+import org.geotools.geotools_javafx.control.view.StyleSettingTableColumn;
 import org.geotools.map.MapContent;
 
 import javafx.application.Application;
@@ -33,7 +36,7 @@ public class JMapFrame extends Application {
 	public void start(Stage primaryStage) throws Exception {
 
 		MapContent mapContent = new MapContent();
-		
+
 		mapContent.setTitle("Quickstart");
 		HBox toolBar = new HBox();
 		VBox root = new VBox();
@@ -45,6 +48,7 @@ public class JMapFrame extends Application {
 		// 执行的动作
 		RestAction restAction = new RestAction(map);
 		ZoomInAction zoomInAction = new ZoomInAction(map);
+		ZoomOutAction zoomOutAction = new ZoomOutAction(map);
 		PanAction paneAction = new PanAction(map);
 		OpenShpLayerAction shpAction = new OpenShpLayerAction(map);
 
@@ -60,6 +64,12 @@ public class JMapFrame extends Application {
 		btnZoomIn.setTooltip(new Tooltip("放大"));
 		btnZoomIn.setOnAction(zoomInAction);
 
+		// 缩小按钮
+		Button btnZoomOut = new Button("", new ImageView("/mActionZoomOut.png"));
+		btnZoomOut.setMinSize(24, 24);
+		btnZoomOut.setTooltip(new Tooltip("放大"));
+		btnZoomOut.setOnAction(zoomOutAction);
+
 		// 拖动按钮
 		Button btnPane = new Button("", new ImageView("/mActionPan.png"));
 		btnPane.setMinSize(24, 24);
@@ -72,17 +82,22 @@ public class JMapFrame extends Application {
 		shpPane.setTooltip(new Tooltip("导入图层"));
 		shpPane.setOnAction(shpAction);
 
-		toolBar.getChildren().addAll(btnRest, btnZoomIn, btnPane,shpPane);
+		toolBar.getChildren().addAll(btnRest, btnZoomIn,btnZoomOut, btnPane, shpPane);
 
-		//图层表格
+		// 图层表格
 		MapLayerTableView layerTable = new MapLayerTableView();
-		layerTable.getColumns().add(new LayerNameTableColumn());
-		mapContent.addMapLayerListListener(layerTable);
-		
-		root.getChildren().add(toolBar);
-		root.getChildren().add(new SplitPane(layerTable , map));
+		layerTable.setEditable(true);
 
-		Scene scene = new Scene(root, 1024, 768);
+		layerTable.getColumns().add(new LayerVisibleTableColumn());
+		layerTable.getColumns().add(new LayerNameTableColumn());
+		layerTable.getColumns().add(new StyleSettingTableColumn());
+
+		mapContent.addMapLayerListListener(layerTable);
+
+		root.getChildren().add(toolBar);
+		root.getChildren().add(new SplitPane(map, layerTable));
+
+		Scene scene = new Scene(root, 1366, 768);
 
 		primaryStage.setTitle("geotools javafx");
 		primaryStage.setScene(scene);

@@ -1,4 +1,4 @@
-package org.geotools.geotools_javafx.control.view.tablecolum;
+package org.geotools.geotools_javafx.control.view;
 
 import org.geotools.map.Layer;
 
@@ -18,5 +18,6 @@ public class LayerNameTableColumn extends TableColumn<Layer, String> {
 	public LayerNameTableColumn(){
 		super("名称");
 		this.setCellValueFactory(new PropertyValueFactory<Layer,String>("title"));
+		this.setEditable(false);
 	}
 }
