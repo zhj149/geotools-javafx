@@ -358,7 +358,7 @@ public class JFXMapCanvas extends Canvas implements MapPane, MapLayerListListene
 			}
 		}
 
-		renderer = newRenderer;
+		this.renderer = newRenderer;
 	}
 
 	/**
@@ -585,6 +585,19 @@ public class JFXMapCanvas extends Canvas implements MapPane, MapLayerListListene
 			this.repaint(false);
 		}
 	}
+	
+	/**
+	 * 绘制成功后清理缓存的操作
+	 */
+	public void onRenderingCompleted() {
+		if (clearLabelCache) {
+			labelCache.clear();
+		}
+		clearLabelCache = false;
+
+		MapPaneEvent ev = new MapPaneEvent(this, MapPaneEvent.Type.RENDERING_STOPPED);
+		publishEvent(ev);
+	}
 
 	/**
 	 * {@inheritDoc}
@@ -752,6 +765,9 @@ public class JFXMapCanvas extends Canvas implements MapPane, MapLayerListListene
 				listener.afterPaint(g2d);
 			}
 		}
+		
+		this.clearLabelCache = true;
+		this.onRenderingCompleted();
 	}
 
 	/**
