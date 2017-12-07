@@ -1,23 +1,12 @@
 package org.geotools.geotools_javafx;
 
-import java.awt.Color;
-import java.io.File;
-import java.util.List;
-
-import org.geotools.data.FileDataStore;
-import org.geotools.data.FileDataStoreFinder;
-import org.geotools.data.simple.SimpleFeatureSource;
 import org.geotools.geotools_javafx.action.OpenShpLayerAction;
 import org.geotools.geotools_javafx.action.PanAction;
 import org.geotools.geotools_javafx.action.RestAction;
 import org.geotools.geotools_javafx.action.ZoomInAction;
 import org.geotools.geotools_javafx.control.MapLayerTableView;
 import org.geotools.geotools_javafx.control.view.tablecolum.LayerNameTableColumn;
-import org.geotools.map.FeatureLayer;
-import org.geotools.map.Layer;
 import org.geotools.map.MapContent;
-import org.geotools.styling.SLD;
-import org.geotools.styling.Style;
 
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -27,8 +16,6 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import javafx.stage.FileChooser;
-import javafx.stage.FileChooser.ExtensionFilter;
 import javafx.stage.Stage;
 
 /**

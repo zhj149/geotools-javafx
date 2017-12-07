@@ -714,6 +714,7 @@ public class JFXMapCanvas extends Canvas implements MapPane, MapLayerListListene
 		final ReferencedEnvelope env = mapContent.getViewport().getBounds();
 		if (env == null)
 			return;
+		
 		DirectPosition2D newPos = new DirectPosition2D(dx, dy);
 		screenToWorld.transform(newPos, newPos);
 
