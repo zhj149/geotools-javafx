@@ -55,9 +55,9 @@ public class MapLayerTableCellRenderer extends JPanel implements ListCellRendere
          */
         VISIBLE(
             new ImageIcon(MapLayerTableCellRenderer.class.getResource(
-                "/com/adcc/geotools/swing/icons/eye_open.png")),
+                "/eye_open.png")),
             new ImageIcon(MapLayerTableCellRenderer.class.getResource(
-                "/com/adcc/geotools/swing/icons/eye_closed.png"))
+                "/eye_closed.png"))
         ),
 
         /**
@@ -66,9 +66,9 @@ public class MapLayerTableCellRenderer extends JPanel implements ListCellRendere
          */
         SELECTED(
             new ImageIcon(MapLayerTableCellRenderer.class.getResource(
-                "/com/adcc/geotools/swing/icons/tick.png")),
+                "/tick.png")),
             new ImageIcon(MapLayerTableCellRenderer.class.getResource(
-                "/com/adcc/geotools/swing/icons/cross.png"))
+                "/cross.png"))
         ),
 
         /**
@@ -76,13 +76,13 @@ public class MapLayerTableCellRenderer extends JPanel implements ListCellRendere
          */
         STYLE(
             new ImageIcon(MapLayerTableCellRenderer.class.getResource(
-                "/com/adcc/geotools/swing/icons/style_layer.png")),
+                "/style_layer.png")),
             null // no off state for this label
         ),
 
         REMOVE(
             new ImageIcon(MapLayerTableCellRenderer.class.getResource(
-                "/com/adcc/geotools/swing/icons/remove_layer.png")),
+                "/remove_layer.png")),
             null // no off state for this label
         );
 

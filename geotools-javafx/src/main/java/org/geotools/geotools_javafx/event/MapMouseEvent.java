@@ -121,10 +121,29 @@ public final class MapMouseEvent extends MouseEvent {
     
     /**
      * package javafx MouseEvent Point to java awt Point
+     * 控件坐标系
      * @return
      */
     public Point getPoint(){
     	return new Point((int)this.getSceneX(), (int)this.getSceneY());
+    }
+    
+    /**
+     * package orignal x, y to awt
+     * 窗口坐标系
+     * @return
+     */
+    public Point getWindowPoint(){
+    	return new Point((int)this.getX(), (int)this.getY());
+    }
+    
+    /**
+     * package screen x, y to awt
+     * 屏幕坐标系
+     * @return
+     */
+    public Point getScreenPoint(){
+    	return new Point((int)this.getScreenX(), (int)this.getScreenY());
     }
     
     /**
@@ -158,7 +177,7 @@ public final class MapMouseEvent extends MouseEvent {
      * 
      * @throws IllegalArgumentException if {@code widthPixels} is less than zero
      */
-    public ReferencedEnvelope getEnvelopeByPixels(double widthPixels) {
+	public ReferencedEnvelope getEnvelopeByPixels(double widthPixels) {
         if (widthPixels < 0) {
             throw new IllegalArgumentException("invalid value for widthPixels: " + widthPixels);
         }
@@ -185,9 +204,14 @@ public final class MapMouseEvent extends MouseEvent {
      */
     private DirectPosition2D calculateWorldPos(MapPane pane, MouseEvent event) {
         AffineTransform tr = pane.getScreenToWorldTransform();
-        DirectPosition2D pos = new DirectPosition2D(event.getX(), event.getY());
+        DirectPosition2D pos = new DirectPosition2D(event.getSceneX(), event.getSceneY());
         tr.transform(pos, pos);
         pos.setCoordinateReferenceSystem(pane.getMapContent().getCoordinateReferenceSystem());
+        
+//        System.out.println("==========================");
+//        System.out.println("point:" + this.getWindowPoint());
+//        System.out.println("sence:" + this.getPoint());
+        
         return pos;
     }
 }

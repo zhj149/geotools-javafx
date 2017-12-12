@@ -233,7 +233,7 @@ public class JFXMapCanvas extends Canvas implements MapPane, MapLayerListListene
 		mapContent.getViewport().setBounds(adjustedEnvelope);
 
 		// Publish the resulting display area with the event
-		publishEvent(new MapPaneEvent(this, MapPaneEvent.Type.DISPLAY_AREA_CHANGED, getDisplayArea()));
+		publishEvent(new MapPaneEvent(this, MapPaneEvent.Type.DISPLAY_AREA_CHANGED, adjustedEnvelope));
 	}
 
 	/**
@@ -415,7 +415,7 @@ public class JFXMapCanvas extends Canvas implements MapPane, MapLayerListListene
 			doSetDisplayArea(newEnvelope);
 
 			// ReferencedEnvelope displayArea =
-			getDisplayArea();
+			// getDisplayArea();
 			// System.out.println(displayArea);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -504,7 +504,7 @@ public class JFXMapCanvas extends Canvas implements MapPane, MapLayerListListene
 	 * @param color
 	 */
 	public void setBackground(Color color) {
-		if (color != null){
+		if (color != null) {
 			this.backgroundColor = color;
 			g2d.setBackground(color);
 		}
@@ -544,8 +544,8 @@ public class JFXMapCanvas extends Canvas implements MapPane, MapLayerListListene
 		Rectangle curPaintArea = this.getVisibleRectangle();
 
 		if (curPaintArea != null && screenToWorld != null) {
-			Point2D p0 = new Point2D.Double(curPaintArea.getMinX(), curPaintArea.getMinY());
-			Point2D p1 = new Point2D.Double(curPaintArea.getMaxX(), curPaintArea.getMaxY());
+			Point2D p0 = new Point2D.Double(curPaintArea.getX(), curPaintArea.getY());
+			Point2D p1 = new Point2D.Double(curPaintArea.getWidth(), curPaintArea.getHeight());
 			screenToWorld.transform(p0, p0);
 			screenToWorld.transform(p1, p1);
 
@@ -585,7 +585,7 @@ public class JFXMapCanvas extends Canvas implements MapPane, MapLayerListListene
 			this.repaint(false);
 		}
 	}
-	
+
 	/**
 	 * 绘制成功后清理缓存的操作
 	 */
@@ -713,7 +713,7 @@ public class JFXMapCanvas extends Canvas implements MapPane, MapLayerListListene
 	@Override
 	public void moveImage(int dx, int dy) {
 		if (this.baseImage != null) {
-			g2d.clearRect(0, 0, (int)this.getWidth(), (int)this.getHeight());
+			g2d.clearRect(0, 0, (int) this.getWidth(), (int) this.getHeight());
 			g2d.drawImage(baseImage, dx, dy, null);
 		}
 	}
@@ -723,8 +723,8 @@ public class JFXMapCanvas extends Canvas implements MapPane, MapLayerListListene
 	 */
 	@Override
 	public void move(int dx, int dy) {
-		
-		final ReferencedEnvelope env = mapContent.getViewport().getBounds();
+
+		final ReferencedEnvelope env = this.getDisplayArea();
 		if (env == null)
 			return;
 		DirectPosition2D newPos = new DirectPosition2D(dx, dy);
@@ -746,6 +746,8 @@ public class JFXMapCanvas extends Canvas implements MapPane, MapLayerListListene
 			baseImage = new BufferedImage(r.width, r.height, BufferedImage.TYPE_INT_ARGB);
 			clearLabelCache = true;
 			memory2D = baseImage.createGraphics();
+			// 重新计算边界，因为当画布大小发生了变化的时候，这个也需要重新计算
+			this.setTransforms(mapContent.getViewport().getBounds(), this.getVisibleRectangle());
 		}
 		memory2D.setBackground(this.backgroundColor);
 		memory2D.clearRect(0, 0, r.width, r.height);
@@ -765,7 +767,7 @@ public class JFXMapCanvas extends Canvas implements MapPane, MapLayerListListene
 				listener.afterPaint(g2d);
 			}
 		}
-		
+
 		this.clearLabelCache = true;
 		this.onRenderingCompleted();
 	}
@@ -799,7 +801,8 @@ public class JFXMapCanvas extends Canvas implements MapPane, MapLayerListListene
 	 */
 	@Override
 	public Rectangle getVisibleRectangle() {
-		Rectangle rectangle = new Rectangle(0, 0, (int) this.getWidth(), (int) this.getHeight());
+		
+		Rectangle rectangle = new Rectangle(0 , 0 ,(int) this.getWidth() , (int) this.getHeight());
 		// javafx画布在初始化的时候，是没有大小的，所以为了防止出错，给个默认大小
 		if (rectangle.isEmpty()) {
 			rectangle.width = 640;
@@ -865,7 +868,7 @@ public class JFXMapCanvas extends Canvas implements MapPane, MapLayerListListene
 	 */
 	@Override
 	public void layerPreDispose(MapLayerListEvent event) {
-		
+
 	}
 
 	// end
@@ -878,15 +881,15 @@ public class JFXMapCanvas extends Canvas implements MapPane, MapLayerListListene
 	@Override
 	public void mapBoundsChanged(MapBoundsEvent event) {
 		int type = event.getType();
-        if ((type & MapBoundsEvent.COORDINATE_SYSTEM_MASK) != 0) {
-            /*
-             * The coordinate reference system has changed. Set the map
-             * to display the full extent of layer bounds to avoid the
-             * effect of a shrinking map
-             */
-            setFullExtent();
-            reset();
-        }
+		if ((type & MapBoundsEvent.COORDINATE_SYSTEM_MASK) != 0) {
+			/*
+			 * The coordinate reference system has changed. Set the map to
+			 * display the full extent of layer bounds to avoid the effect of a
+			 * shrinking map
+			 */
+			setFullExtent();
+			reset();
+		}
 	}
 
 	// end
